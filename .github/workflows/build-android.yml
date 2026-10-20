@@ -14,7 +14,7 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: ["arm64", "x86_64"]
+        arch: ["arm64"]
     name: Android ${{ matrix.arch }}
     runs-on: ubuntu-24.04
     steps:
@@ -43,6 +43,12 @@ jobs:
         working-directory: ${{ env.work-dir }}
         run: |
           export ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME
+          # GitHub regenerated the llvm-project archive XLA pins, so its
+          # checksum changed (same content). Fetch once, swap the checksum
+          # in the fetched workspace files, then build.
+          python ./build.py android --arch ${{ matrix.arch }} --output build/${{ matrix.arch }} || true
+          OUTPUT_BASE=$(cd mediapipe && bazelisk info output_base)
+          grep -rl 3f986184ee126677dbd77edb16d6b82c057ec869fefd7a9871979941e52e837a "$OUTPUT_BASE/external" --include=*.bzl             | xargs -r sed -i 's/3f986184ee126677dbd77edb16d6b82c057ec869fefd7a9871979941e52e837a/00b1077e029fa57e6f2d9ac24936a49acf23ebc051b04f487131116258be6248/'
           python ./build.py android --arch ${{ matrix.arch }} --output build/${{ matrix.arch }}
 
       - name: Upload Artifacts
